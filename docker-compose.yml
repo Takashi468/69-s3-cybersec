@@ -1,39 +1,10 @@
 services:
-  69-s3-db:
-    image: postgres:16
+  db:
+    image: postgres:16-alpine
     container_name: 69-s3-db
-    environment:
-      POSTGRES_PASSWORD: "P@ssw0rd*10"
-      POSTGRES_USER: jeerapol
-      POSTGRES_DB: jeerapol
     ports:
-      - "54327:5432"
-    networks:
-      - s3-net
-
-  69-s3-db-cli:
-    image: postgres:16
-    container_name: 69-s3-db-cli
-    environment:
-      POSTGRES_PASSWORD: "P@ssw0rd*10"
-      POSTGRES_USER: jeerapol
-      POSTGRES_DB: jeerapol
-    ports:
-      - "54328:5432"
-    networks:
-      - s3-net
-
-  69-s3-admin:
-    image: dpage/pgadmin4
-    container_name: 69-s3-admin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: jeerapol-y@rmutp.ac.th
-      PGADMIN_DEFAULT_PASSWORD: "P@ssw0rd*10"
-    ports:
-      - "8083:80"
-    networks:
-      - s3-net
-
-networks:
-  s3-net:
-    driver: bridge
+      - 54327:5432
+    entrypoint:
+      - POSTGRES_PASSWORD=P@ssw0rd*10
+      - POSTGRES_USER=jeerapol
+      - POSTGRES_DB=jeerapol
