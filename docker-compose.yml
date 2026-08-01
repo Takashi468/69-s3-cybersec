@@ -4,7 +4,15 @@ services:
     container_name: 69-s3-db
     ports:
       - 54327:5432
-    entrypoint:
+    environment:
       - POSTGRES_PASSWORD=REDACTED-PASSWORD-12345
       - POSTGRES_USER=jeerapol
       - POSTGRES_DB=jeerapol
+  admin:
+    image: dpage/pgadmin4
+    container_name: 69-s3-admin
+    ports:
+      - 8083:80
+    environment:
+       - PGADMIN_DEFAULT_EMAIL=jeerapol-y@rmutp.ac.th
+       - PGADMIN_DEFAULT_PASSWORD=REDACTED-PASSWORD-12345
