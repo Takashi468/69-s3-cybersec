@@ -1,0 +1,7 @@
+docker network create s3-net
+
+docker run -d --name 69-s3-db   -e POSTGRES_PASSWORD=P@ssw0rd*10   -e POSTGRES_USER=jeerapol   -e POSTGRES_DB=jeerapol   -p 54327:5432   --network s3-net   postgres:16
+
+docker run -d --name 69-s3-db-cli   -e POSTGRES_PASSWORD=P@ssw0rd*10   -e POSTGRES_USER=jeerapol   -e POSTGRES_DB=jeerapol   -p 54328:5432   --network s3-net   postgres:16
+
+docker run -d --name 69-s3-admin   -e PGADMIN_DEFAULT_EMAIL=jeerapol-y@rmutp.ac.th   -e PGADMIN_DEFAULT_PASSWORD=P@ssw0rd*10   -p 8083:80   --network s3-net   dpage/pgadmin4
