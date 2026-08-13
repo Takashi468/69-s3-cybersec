@@ -14,8 +14,8 @@ services:
     ports:
       - 8083:80
     environment:
-       - PGADMIN_DEFAULT_EMAIL=jeerapol-y@rmutp.ac.th
-       - PGADMIN_DEFAULT_PASSWORD=P@ssw0rd*10
+      - PGADMIN_DEFAULT_EMAIL=${DATABASE_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${DATABASE_PASSWORD}
   app:
     image: prawee/strapi
     container_name: 69-s3-app
