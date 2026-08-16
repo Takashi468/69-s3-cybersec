@@ -24,7 +24,7 @@ services:
     ports:
       - 9093:1337
     environment:
-      - DATABASE_CLIENT=postgres
+      - DATABASE_CLIENT=${DATABASE_CLIENT}
       - DATABASE_NAME=${DATABASE_DB}
       - DATABASE_HOST=${DATABASE_HOST}
       - DATABASE_PORT=${DATABASE_PORT}
