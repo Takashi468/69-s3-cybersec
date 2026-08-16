@@ -3,3 +3,4 @@
 *.swn
 .env
 /data
+api.rest
