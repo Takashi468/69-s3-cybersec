@@ -31,4 +31,5 @@ Content-Type: application/json
  
 ### Profile
 GET http://localhost:9093/admin/users/me
+
 Authorization: Bearer <Token> 
