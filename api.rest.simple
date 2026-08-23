@@ -7,7 +7,16 @@ Content-Type: application/json
 {
     "email": "",
     "password": "",
-    "rememberMe":  
+    "rememberMe":
+}
+
+### Login (User)
+POST http://localhost:9093/api/auth/local
+Content-Type: application/json
+
+{
+    "identifier": "",
+    "password": ""
 }
 
 ### Signup
@@ -28,8 +37,8 @@ Content-Type: application/json
 {
     "email": ""
 }
- 
+
 ### Profile
 GET http://localhost:9093/admin/users/me
 
-Authorization: Bearer <Token> 
+Authorization: Bearer <Token>
