@@ -1,26 +1,25 @@
-# REST
+# REST — Strapi API (localhost:9093)
 
-### Login
-POST http://localhost:9093/admin/login
+@host = http://localhost:9093
+# Admin JWT — จาก Login (Admin)
+@token =
+# User JWT — จาก Login (User)
+@userToken =
+
+# ADMIN SESSION
+
+### Login (Admin)
+POST {{host}}/admin/login
 Content-Type: application/json
 
 {
     "email": "",
     "password": "",
-    "rememberMe":
+    "rememberMe": true
 }
 
-### Login (User)
-POST http://localhost:9093/api/auth/local
-Content-Type: application/json
-
-{
-    "identifier": "",
-    "password": ""
-}
-
-### Signup
-POST http://localhost:9093/admin/register-admin
+### Signup (Admin)
+POST {{host}}/admin/register-admin
 Content-Type: application/json
 
 {
@@ -30,15 +29,47 @@ Content-Type: application/json
     "password": ""
 }
 
-### Forgot Password
-POST http://localhost:9093/admin/forgot-password
+### Forgot Password (Admin)
+POST {{host}}/admin/forgot-password
 Content-Type: application/json
 
 {
     "email": ""
 }
 
-### Profile
-GET http://localhost:9093/admin/users/me
+### Profile (Admin)
+GET {{host}}/admin/users/me
+Authorization: Bearer {{token}}
 
-Authorization: Bearer <Token>
+# USER SESSION
+
+### Login (User)
+POST {{host}}/api/auth/local
+Content-Type: application/json
+
+{
+    "identifier": "",
+    "password": ""
+}
+
+### Signup (User)
+POST {{host}}/api/auth/local/register
+Content-Type: application/json
+
+{
+    "username": "",
+    "email": "",
+    "password": ""
+}
+
+### Forgot Password (User)
+POST {{host}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": ""
+}
+
+### Profile (User)
+GET {{host}}/api/users/me
+Authorization: Bearer {{userToken}}
