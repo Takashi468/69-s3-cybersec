@@ -4,4 +4,5 @@
 .env
 /data
 api.rest
-.bfg-report/
+*bfg-report/
+SECURITY-FIXES.md
