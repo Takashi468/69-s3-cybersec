@@ -2,33 +2,60 @@ services:
   db:
     image: postgres:16-alpine
     container_name: 69-s3-db
+    restart: unless-stopped
     ports:
-      - ${DB_PORT}:5432
+      # bind แค่ localhost — ไม่เปิดให้ทั้งวงแลนต่อ Postgres ตรง
+      - 127.0.0.1:${DB_PORT}:5432
     environment:
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-      - POSTGRES_USER=${DATABASE_USER}
-      - POSTGRES_DB=${DATABASE_DB}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_DB}
+      # บังคับให้ TCP connections ใช้ scram-sha-256 (default ของ image = md5)
+      # อยู่ถาวรใน compose — ไม่หายตอน wipe data/ เหมือนการแก้ pg_hba.conf โดยตรง
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      STRAPI_DB_USER: ${STRAPI_DB_USER}
+      STRAPI_DB_PASSWORD: ${STRAPI_DB_PASSWORD}
     volumes:
       - ./data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   admin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:9.17
     container_name: 69-s3-admin
+    restart: unless-stopped
     ports:
-      - ${ADMIN_PORT}:80
+      - 127.0.0.1:${ADMIN_PORT}:80
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${DATABASE_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${DATABASE_PASSWORD}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+
   app:
-    image: prawee/strapi
+    image: prawee/strapi:1.1.0
     container_name: 69-s3-app
+    restart: unless-stopped
     ports:
-      - ${APP_PORT}:1337
+      - 127.0.0.1:${APP_PORT}:1337
     environment:
       - DATABASE_CLIENT=${DATABASE_CLIENT}
       - DATABASE_NAME=${DATABASE_DB}
       - DATABASE_HOST=${DATABASE_HOST}
       - DATABASE_PORT=${DATABASE_PORT}
-      - DATABASE_USERNAME=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-volumes:
-  data:
+      - DATABASE_USERNAME=${STRAPI_DB_USER}
+      - DATABASE_PASSWORD=${STRAPI_DB_PASSWORD}
+      # secrets ของ Strapi — ถ้าไม่ตั้ง จะ fallback ไปค่า default ที่เดาได้ = ปลอม JWT ได้
+      - APP_KEYS=${APP_KEYS}
+      - API_TOKEN_SALT=${API_TOKEN_SALT}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
+      - TRANSFER_TOKEN_SALT=${TRANSFER_TOKEN_SALT}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy

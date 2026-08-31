@@ -4,3 +4,4 @@
 .env
 /data
 api.rest
+.bfg-report/
