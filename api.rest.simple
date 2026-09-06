@@ -34,8 +34,11 @@ Content-Type: application/json
     "email": ""
 }
 
-# ถ้ายังไม่ตั้ง email provider ให้ดึง reset_password_token ล่าสุดจาก admin_users ใน DB มาใส่เอง
-# (token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ)
+# เปิด Mailpit ดู code จากอีเมลล่าสุด (Reset password) แล้วเอามาใส่ที่นี่:
+#   http://127.0.0.1:8025   (ดู MAILPIT.md)
+# หรือรันทั้ง flow ให้อัตโนมัติด้วย ./test-reset-password.sh admin
+# fallback ถ้ายังไม่ตั้ง email provider: ดึง reset_password_token จาก admin_users ใน DB เอง
+# (ไม่ว่าวิธีไหน token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ ต้องเอาตัวล่าสุดเสมอ)
 @adminResetToken =
 
 ### Reset Password (Admin)
@@ -81,8 +84,11 @@ Content-Type: application/json
     "email": ""
 }
 
-# ถ้ายังไม่ตั้ง email provider ให้ดึง reset_password_token ล่าสุดจาก up_users ใน DB มาใส่เอง
-# (token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ)
+# เปิด Mailpit ดู code จากอีเมลล่าสุด (Reset password) แล้วเอามาใส่ที่นี่:
+#   http://127.0.0.1:8025   (ดู MAILPIT.md)
+# หรือรันทั้ง flow ให้อัตโนมัติด้วย ./test-reset-password.sh user
+# fallback ถ้ายังไม่ตั้ง email provider: ดึง reset_password_token จาก up_users ใน DB เอง
+# (ไม่ว่าวิธีไหน token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ ต้องเอาตัวล่าสุดเสมอ)
 @userResetToken =
 
 ### Reset Password (User)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ทดสอบ full flow: Forgot Password -> ดึง reset token จาก DB -> Reset Password
-# ทำครบในคำสั่งเดียว ไม่ต้องเปิด api.rest มา copy-paste token เอง
+# ทดสอบ full flow แบบ CLI ล้วนๆ ไม่ต้องเปิด Mailpit UI เลย:
+#   Forgot Password -> ดึงอีเมลจาก Mailpit API -> แกะ token จากลิงก์ -> Reset Password
 #
 # Usage:
 #   ./test-reset-password.sh admin [new_password]
@@ -9,29 +9,53 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-export $(grep -E '^(ADMIN_EMAIL|ADMIN_PASSWORD|USER_PASSWORD|DATABASE_USER|DATABASE_DB|DATABASE_PASSWORD)=' .env | xargs)
+export $(grep -E '^(ADMIN_EMAIL|ADMIN_PASSWORD|USER_PASSWORD|MAILPIT_PORT)=' .env | xargs)
 
 HOST="http://localhost:9093"
-DB_CONTAINER="69-s3-db"
+MAILPIT="http://localhost:${MAILPIT_PORT}"
 USER_EMAIL="russell123@gmail.com"
 
 target="${1:?ระบุ admin หรือ user}"
 
-psql_query() {
-  docker exec -e PGPASSWORD="$DATABASE_PASSWORD" "$DB_CONTAINER" \
-    psql -U "$DATABASE_USER" -d "$DATABASE_DB" -t -A -c "$1"
+# นับจำนวนอีเมลถึง $1 ตอนนี้ (ใช้เทียบก่อน/หลังยิง forgot-password กันอ่านอีเมลเก่าซ้ำ)
+count_messages() {
+  curl -s "$MAILPIT/api/v1/search?query=to:$1" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['total'])"
+}
+
+# รอจน Mailpit มีอีเมลใหม่เข้ามา (สูงสุด ~5 วิ) แล้วดึง code จากอีเมลล่าสุดที่ส่งถึง $1
+latest_reset_code() {
+  local to_email="$1"
+  local before="$2"
+  local id="" after
+
+  for _ in $(seq 1 25); do
+    after=$(count_messages "$to_email")
+    if [[ "$after" -gt "$before" ]]; then
+      id=$(curl -s "$MAILPIT/api/v1/search?query=to:$to_email" \
+        | python3 -c "import sys,json;print(json.load(sys.stdin)['messages'][0]['ID'])")
+      break
+    fi
+    sleep 0.2
+  done
+  [[ -z "$id" ]] && { echo "รออีเมลถึง $to_email ใน Mailpit ไม่ทัน (timeout)" >&2; exit 1; }
+
+  curl -s "$MAILPIT/api/v1/message/$id" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['Text'])" \
+    | grep -oP 'code=\K[a-f0-9]+'
 }
 
 case "$target" in
   admin)
     password="${2:-$ADMIN_PASSWORD}"
+    before=$(count_messages "$ADMIN_EMAIL")
 
     echo "-> Forgot Password (Admin)"
     curl -s -o /dev/null -w "   HTTP %{http_code}\n" -X POST "$HOST/admin/forgot-password" \
       -H "Content-Type: application/json" -d "{\"email\":\"$ADMIN_EMAIL\"}"
 
-    token=$(psql_query "select reset_password_token from admin_users where email='$ADMIN_EMAIL';")
-    echo "-> token: $token"
+    token=$(latest_reset_code "$ADMIN_EMAIL" "$before")
+    echo "-> token (จากอีเมลใน Mailpit): $token"
 
     echo "-> Reset Password (Admin)"
     curl -s -X POST "$HOST/admin/reset-password" \
@@ -41,14 +65,14 @@ case "$target" in
 
   user)
     password="${2:-$USER_PASSWORD}"
+    before=$(count_messages "$USER_EMAIL")
 
-    echo "-> Forgot Password (User) [ไม่มี email provider — ยิงแบบ background ไม่รอจนจบ]"
-    ( curl -s -o /dev/null -X POST "$HOST/api/auth/forgot-password" \
-        -H "Content-Type: application/json" -d "{\"email\":\"$USER_EMAIL\"}" & disown ) 2>/dev/null
-    sleep 2
+    echo "-> Forgot Password (User)"
+    curl -s -o /dev/null -w "   HTTP %{http_code}\n" -X POST "$HOST/api/auth/forgot-password" \
+      -H "Content-Type: application/json" -d "{\"email\":\"$USER_EMAIL\"}"
 
-    token=$(psql_query "select reset_password_token from up_users where email='$USER_EMAIL';")
-    echo "-> token: $token"
+    token=$(latest_reset_code "$USER_EMAIL" "$before")
+    echo "-> token (จากอีเมลใน Mailpit): $token"
 
     echo "-> Reset Password (User)"
     curl -s -X POST "$HOST/api/auth/reset-password" \

@@ -18,10 +18,11 @@ Mailpit คือ SMTP server ปลอมสำหรับ dev/test เท่�
 | [docker-compose.yml](docker-compose.yml) | service `mailpit` + mount `config/plugins.js` เข้า container `app` |
 | [config/plugins.js](config/plugins.js) | ตั้งค่า Strapi email plugin ให้ชี้ไปที่ Mailpit แทน SMTP จริง |
 | `.env` | ตัวแปร `MAILPIT_PORT` (พอร์ตที่ใช้เปิดหน้าเว็บดูอีเมลบน host) |
+| [test-reset-password.sh](test-reset-password.sh) | สคริปต์ทดสอบ full flow ผ่าน CLI ล้วนๆ (ดึง token จาก Mailpit API เอง) |
 
 ## วิธีใช้งาน
 
-### 1. เปิด container (ทำครั้งเดียว / ทุกครั้งที่ `docker compose up`)
+### 0. เปิด container (ทำครั้งเดียว / ทุกครั้งที่ `docker compose up`)
 
 ```bash
 docker compose up -d
@@ -29,7 +30,14 @@ docker compose up -d
 
 Mailpit จะถูกสร้างและ start มาพร้อมกับ `app`/`db`/`admin` โดยอัตโนมัติ (ไม่ต้องสั่งแยก)
 
-### 2. ยิง Forgot Password ตามปกติ
+จากนี้เลือกได้ 2 วิธี — **ใช้แบบไหนก็ได้** แล้วแต่สถานการณ์ (วิธี A เห็นอีเมลจริงเหมือนใช้งานจริง, วิธี B เร็ว
+และไม่ต้องออกจาก terminal เลย)
+
+---
+
+### วิธี A — ผ่านหน้าเว็บ (UI)
+
+**1. ยิง Forgot Password ตามปกติ**
 
 ใช้ `api.rest` (หรือ `api.rest.simple`) ยิง request ตามปกติ:
 
@@ -38,7 +46,7 @@ Mailpit จะถูกสร้างและ start มาพร้อมก�
 
 ทั้งสองจะตอบกลับเร็ว (ไม่ค้างแล้ว)
 
-### 3. เปิดดูอีเมลที่ Mailpit
+**2. เปิดดูอีเมลที่ Mailpit**
 
 เปิดเบราว์เซอร์ไปที่:
 
@@ -57,7 +65,7 @@ http://.../reset-password?code=<token>                               ← User
 
 Copy ค่า `<token>` หลัง `code=` มาใช้ต่อได้เลย
 
-### 4. ยิง Reset Password ต่อ
+**3. ยิง Reset Password ต่อ**
 
 ใส่ token ที่ copy มาใน `api.rest`:
 
@@ -71,15 +79,35 @@ Copy ค่า `<token>` หลัง `code=` มาใช้ต่อได้�
 > ⚠️ token ใช้ได้ **ครั้งเดียว** — ถ้ากด Forgot Password ซ้ำ token เก่าจะถูกแทนที่ด้วยอันใหม่ทันที ต้องเปิด
 > Mailpit ไปดูอีเมลฉบับล่าสุดเสมอ
 
-## Mailpit API (ทางลัดสำหรับ script/curl)
+---
 
-ไม่จำเป็นต้องเปิดเว็บก็ดึงเนื้อหาอีเมลได้ผ่าน REST API ของ Mailpit เอง:
+### วิธี B — CLI ล้วนๆ (ไม่ต้องเปิด browser เลย)
+
+ใช้สคริปต์ [test-reset-password.sh](test-reset-password.sh) ที่ทำครบทั้ง flow ในคำสั่งเดียว:
 
 ```bash
-# ดูรายการอีเมลล่าสุด
-curl -s http://localhost:8025/api/v1/messages | python3 -m json.tool
+./test-reset-password.sh admin
+./test-reset-password.sh user
+```
 
-# ดูเนื้อหาอีเมลฉบับใดฉบับหนึ่ง (เอา ID จาก messages ด้านบน)
+**สิ่งที่สคริปต์ทำให้อัตโนมัติ:**
+1. ยิง `Forgot Password`
+2. Poll Mailpit search API (`curl http://localhost:8025/api/v1/search?query=to:<email>`) จนกว่าอีเมลใหม่จะมาถึง
+3. ดึงเนื้อหาอีเมลล่าสุด แกะ `code=<token>` ออกมาด้วย `grep -oP`
+4. ยิง `Reset Password` ต่อทันที พร้อม pretty-print ผลลัพธ์
+
+**ถ้าอยากตั้งรหัสผ่านใหม่จริง** ใส่ argument ที่ 2 (ไม่ใส่ = ใช้รหัสเดิมจาก `.env` แค่ทดสอบ flow เฉยๆ):
+```bash
+./test-reset-password.sh admin "NewPassword123!"
+```
+
+#### Mailpit API แบบ manual (เผื่ออยากดึงเองหรือ debug สคริปต์)
+
+```bash
+# ค้นอีเมลถึง email หนึ่งๆ (เรียงใหม่สุดก่อน)
+curl -s "http://localhost:8025/api/v1/search?query=to:russell123@gmail.com" | python3 -m json.tool
+
+# ดูเนื้อหาอีเมลฉบับใดฉบับหนึ่ง (เอา ID จากผลค้นด้านบน)
 curl -s http://localhost:8025/api/v1/message/<ID> | python3 -m json.tool
 ```
 
