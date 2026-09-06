@@ -79,15 +79,37 @@ services:
       - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}
       - TRANSFER_TOKEN_SALT=${TRANSFER_TOKEN_SALT}
       - JWT_SECRET=${JWT_SECRET}
+      # ชี้ email plugin (config/plugins.js) ไปที่ Mailpit แทน SMTP จริง — ไว้ทดสอบ forgot-password ใน local
+      - MAILPIT_HOST=mailpit
+      - MAILPIT_SMTP_PORT=1025
+    volumes:
+      - ./config/plugins.js:/opt/app/config/plugins.js:ro
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     mem_limit: 1024m
     memswap_limit: 1024m
+
+  mailpit:
+    # SMTP catcher สำหรับ local dev เท่านั้น — ดักอีเมลที่ Strapi ส่ง (forgot-password ฯลฯ)
+    # ไม่ส่งออกอินเทอร์เน็ตจริง ดูอีเมลได้ผ่านหน้าเว็บ http://127.0.0.1:${MAILPIT_PORT}
+    image: axllent/mailpit@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
+    container_name: 69-s3-mailpit
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${MAILPIT_PORT}:8025
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    memswap_limit: 128m
 
 volumes:
   db_data:

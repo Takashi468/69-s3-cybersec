@@ -1,14 +1,11 @@
 # REST — Strapi API (localhost:9093)
 
 @host = http://localhost:9093
-# Admin JWT — จาก Login (Admin)
-@token =
-# User JWT — จาก Login (User)
-@userToken =
 
 # ADMIN SESSION
 
 ### Login (Admin)
+# @name adminLogin
 POST {{host}}/admin/login
 Content-Type: application/json
 
@@ -37,13 +34,27 @@ Content-Type: application/json
     "email": ""
 }
 
+# ถ้ายังไม่ตั้ง email provider ให้ดึง reset_password_token ล่าสุดจาก admin_users ใน DB มาใส่เอง
+# (token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ)
+@adminResetToken =
+
+### Reset Password (Admin)
+POST {{host}}/admin/reset-password
+Content-Type: application/json
+
+{
+    "resetPasswordToken": "{{adminResetToken}}",
+    "password": ""
+}
+
 ### Profile (Admin)
 GET {{host}}/admin/users/me
-Authorization: Bearer {{token}}
+Authorization: Bearer {{adminLogin.response.body.$.data.token}}
 
 # USER SESSION
 
 ### Login (User)
+# @name userLogin
 POST {{host}}/api/auth/local
 Content-Type: application/json
 
@@ -70,6 +81,20 @@ Content-Type: application/json
     "email": ""
 }
 
+# ถ้ายังไม่ตั้ง email provider ให้ดึง reset_password_token ล่าสุดจาก up_users ใน DB มาใส่เอง
+# (token เก่าใช้ไม่ได้แล้วถ้ากด Forgot Password ซ้ำ)
+@userResetToken =
+
+### Reset Password (User)
+POST {{host}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+    "code": "{{userResetToken}}",
+    "password": "",
+    "passwordConfirmation": ""
+}
+
 ### Profile (User)
 GET {{host}}/api/users/me
-Authorization: Bearer {{userToken}}
+Authorization: Bearer {{userLogin.response.body.$.jwt}}
